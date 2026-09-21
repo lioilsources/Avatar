@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://avatar.ol1n.com/schema/preset-v1.json",
+  "title": "Avatar preset",
+  "description": "Recept na jeden vzhled. Loader v Go tenhle soubor validuje při startu i při hot-reloadu; nevalidní preset se nenačte a zaloguje se jako chyba (ostatní presety se načtou dál).",
+  "type": "object",
+  "required": ["id", "version", "category", "checkpoint", "profile", "prompt_dialect", "prompt_template", "identity", "sampler", "license_tier"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Stabilní identifikátor. Recipe ho referencuje spolu s verzí, takže ho NIKDY neměň — vytvoř nový preset."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Zvyš při každé změně, která mění výsledek. Recipe si drží preset_id@version, aby šel rerender reprodukovat."
+    },
+    "category": {
+      "type": "string",
+      "enum": ["realistic", "stylized", "artistic", "fantasy", "anime"]
+    },
+    "checkpoint": {
+      "type": "string",
+      "description": "Klíč z data/licenses.yaml → checkpoints. Resolver odmítne cokoliv, co tam není nebo má tier blocked."
+    },
+    "profile": {
+      "type": "string",
+      "enum": ["preview", "final", "final-stylized", "inpaint"],
+      "description": "Engine matrix z §6 — určuje kroky, CFG a jestli se přidá akcelerační LoRA."
+    },
+    "prompt_dialect": {
+      "type": "string",
+      "enum": ["natural", "booru"],
+      "description": "SDXL fotorealistické checkpointy chtějí přirozený jazyk, anime merge chtějí booru tagy. Atributová tabulka má fragmenty pro oba dialekty."
+    },
+    "loras": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["name", "weight"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Klíč z licenses.yaml → loras, nebo placeholder $user_lora."
+          },
+          "weight": { "type": "number", "minimum": 0.0, "maximum": 2.0 },
+          "optional": {
+            "type": "boolean",
+            "default": false,
+            "description": "Když true a LoRA není dostupná, položka tiše vypadne. $user_lora je optional vždy — dokud se nedotrénuje, jede se instant trackem."
+          }
+        }
+      }
+    },
+    "prompt_template": {
+      "type": "string",
+      "description": "Placeholdery: {subject} {attrs} {quality} {trigger}. {trigger} je trigger token user LoRA — když LoRA není, nahradí se prázdným řetězcem."
+    },
+    "negative_template": {
+      "type": "string",
+      "default": "",
+      "description": "Placeholder {nsfw_lock} se rozvine na sdílený NSFW negative blok, když je nsfw_negative_lock true."
+    },
+    "identity": {
+      "type": "object",
+      "required": ["method", "weight"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["ipadapter", "photomaker", "lora_only", "none"],
+          "description": "Žádný instantid — závisí na non-komerčním InsightFace (viz licenses.yaml)."
+        },
+        "weight": { "type": "number", "minimum": 0.0, "maximum": 1.5 },
+        "start": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0 },
+        "end": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 1.0 }
+      }
+    },
+    "controlnet": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["type", "weight"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["depth", "softedge", "openpose", "inpaint"],
+            "description": "Logický typ. Konkrétní soubor vybere resolver — dnes všechno pokrývá xinsir union promax."
+          },
+          "weight": { "type": "number", "minimum": 0.0, "maximum": 2.0 },
+          "start": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0 },
+          "end": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 1.0 }
+        }
+      }
+    },
+    "sampler": {
+      "type": "object",
+      "required": ["name", "scheduler", "steps", "cfg"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "scheduler": { "type": "string" },
+        "steps": { "type": "integer", "minimum": 1, "maximum": 150 },
+        "cfg": { "type": "number", "minimum": 0.0, "maximum": 30.0 }
+      }
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "default": { "width": 1024, "height": 1024 },
+      "properties": {
+        "width": { "type": "integer", "minimum": 512, "maximum": 2048 },
+        "height": { "type": "integer", "minimum": 512, "maximum": 2048 }
+      }
+    },
+    "supports_attrs": {
+      "type": "array",
+      "default": [],
+      "items": { "type": "string" },
+      "description": "Klíče z data/attributes.yaml. UI slidery mimo tenhle seznam SKRYJE, ne disabluje — viditelný slider, který nic nedělá, je horší než žádný."
+    },
+    "nsfw_negative_lock": { "type": "boolean", "default": true },
+    "face_restore": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": 0.0,
+      "description": "V v0 musí být 0.0 — GFPGAN i CodeFormer jsou licenčně mimo (viz licenses.yaml). Pole zůstává kvůli budoucímu čistému restore modelu."
+    },
+    "license_tier": {
+      "type": "string",
+      "enum": ["safe", "verify", "blocked"],
+      "description": "Deklarace autora presetu. Loader ji křížově ověří proti licenses.yaml a při rozporu si vezme ten PŘÍSNĚJŠÍ z obou — preset si nemůže sám sobě povolit blocked checkpoint."
+    },
+    "thumbnail": { "type": "string" },
+    "label": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Lokalizovaný název, klíč = kód jazyka."
+    }
+  }
+}

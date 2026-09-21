@@ -1,0 +1,222 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    },
+    "_meta": {
+      "title": "checkpoint"
+    }
+  },
+  "10": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "clip": [
+        "1",
+        1
+      ],
+      "lora_name": "sdxl_lightning_8step_lora.safetensors",
+      "model": [
+        "1",
+        0
+      ],
+      "strength_clip": 1,
+      "strength_model": 1
+    },
+    "_meta": {
+      "title": "lora sdxl_lightning_8step"
+    }
+  },
+  "20": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "10",
+        1
+      ],
+      "text": "professional studio headshot photo of a person, soft key light, neutral grey backdrop, highly detailed, sharp focus, natural skin texture, 85mm lens"
+    },
+    "_meta": {
+      "title": "positive"
+    }
+  },
+  "21": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "10",
+        1
+      ],
+      "text": "nsfw, nude, naked, nudity, explicit, sexual, lingerie, underwear, child, minor, loli, blurry, deformed, watermark, text"
+    },
+    "_meta": {
+      "title": "negative"
+    }
+  },
+  "30": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "ref.png"
+    },
+    "_meta": {
+      "title": "ref foto"
+    }
+  },
+  "40": {
+    "class_type": "IPAdapterModelLoader",
+    "inputs": {
+      "ipadapter_file": "ip-adapter-plus-face_sdxl_vit-h.safetensors"
+    }
+  },
+  "41": {
+    "class_type": "CLIPVisionLoader",
+    "inputs": {
+      "clip_name": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
+    }
+  },
+  "42": {
+    "class_type": "IPAdapterAdvanced",
+    "inputs": {
+      "clip_vision": [
+        "41",
+        0
+      ],
+      "combine_embeds": "concat",
+      "embeds_scaling": "V only",
+      "end_at": 0.9,
+      "image": [
+        "30",
+        0
+      ],
+      "ipadapter": [
+        "40",
+        0
+      ],
+      "model": [
+        "10",
+        0
+      ],
+      "start_at": 0,
+      "weight": 0.75,
+      "weight_type": "linear"
+    },
+    "_meta": {
+      "title": "identita"
+    }
+  },
+  "50": {
+    "class_type": "DepthAnythingV2Preprocessor",
+    "inputs": {
+      "ckpt_name": "depth_anything_v2_vits.pth",
+      "image": [
+        "30",
+        0
+      ],
+      "resolution": 768
+    },
+    "_meta": {
+      "title": "depth hint"
+    }
+  },
+  "51": {
+    "class_type": "ControlNetApplyAdvanced",
+    "inputs": {
+      "control_net": [
+        "52",
+        0
+      ],
+      "end_percent": 0.7,
+      "image": [
+        "50",
+        0
+      ],
+      "negative": [
+        "21",
+        0
+      ],
+      "positive": [
+        "20",
+        0
+      ],
+      "start_percent": 0,
+      "strength": 0.45,
+      "vae": [
+        "1",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "controlnet depth"
+    }
+  },
+  "52": {
+    "class_type": "ControlNetLoader",
+    "inputs": {
+      "control_net_name": "controlnet-union-sdxl-promax-xinsir.safetensors"
+    }
+  },
+  "80": {
+    "class_type": "EmptyLatentImage",
+    "inputs": {
+      "batch_size": 1,
+      "height": 768,
+      "width": 768
+    }
+  },
+  "81": {
+    "class_type": "KSampler",
+    "inputs": {
+      "cfg": 2,
+      "denoise": 1,
+      "latent_image": [
+        "80",
+        0
+      ],
+      "model": [
+        "42",
+        0
+      ],
+      "negative": [
+        "51",
+        1
+      ],
+      "positive": [
+        "51",
+        0
+      ],
+      "sampler_name": "dpmpp_sde",
+      "scheduler": "karras",
+      "seed": 42,
+      "steps": 8
+    },
+    "_meta": {
+      "title": "sampler"
+    }
+  },
+  "82": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "81",
+        0
+      ],
+      "vae": [
+        "1",
+        2
+      ]
+    }
+  },
+  "83": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "avatar/reference",
+      "images": [
+        "82",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "výstup"
+    }
+  }
+}

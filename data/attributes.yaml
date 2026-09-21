@@ -1,0 +1,264 @@
+# Mapovací tabulka atributů — které atributy existují a jak se každý vynutí.
+#
+# Klíčové pravidlo z plánu (§2): každý atribut patří právě do JEDNÉ vrstvy.
+#   geometry — TPS warp vstupní fotky PŘED generací
+#   mask     — segmentovaný inpaint PO base renderu
+#   prompt   — textový fragment PŘI base renderu
+#
+# Vrstva určuje i cenu změny (§7.4 diferenciální rendering):
+#   mask     → inpaint jen dotčené masky nad předchozím výsledkem, stejný seed (levné)
+#   geometry → full re-render, warp mění vstup (drahé)
+#   prompt   → full re-render, stejný seed (drahé)
+#
+# Ve Fázi 0 se z téhle tabulky nic nepoužívá — API ji jen načte a zvaliduje.
+# Fáze 2 na ni navěsí warp modul a masky. Existuje teď, aby se preset schema
+# mělo o co opřít (`supports_attrs`).
+
+version: 1
+
+attributes:
+  # ---------------------------------------------------------------- geometry
+  lips_fullness:
+    layer: geometry
+    type: continuous
+    range: [-1.0, 1.0]
+    default: 0.0
+    label: { cs: "Plnost rtů", en: "Lip fullness" }
+    group: lips
+    geometry:
+      method: tps
+      # MediaPipe Face Mesh indexy obrysu rtů
+      landmarks: [61, 291, 0, 17, 13, 14]
+      scale: 0.35
+    prompt:
+      natural: { "-1": "thin lips", "1": "full plump lips" }
+      booru:   { "-1": "thin lips", "1": "large lips" }
+
+  nose_width:
+    layer: geometry
+    type: continuous
+    range: [-1.0, 1.0]
+    default: 0.0
+    label: { cs: "Šířka nosu", en: "Nose width" }
+    group: nose
+    geometry:
+      method: tps
+      landmarks: [98, 327, 1, 2, 168]
+      scale: 0.25
+    prompt:
+      natural: { "-1": "narrow nose", "1": "wide nose" }
+      booru:   { "-1": "narrow nose", "1": "wide nose" }
+
+  jaw_width:
+    layer: geometry
+    type: continuous
+    range: [-1.0, 1.0]
+    default: 0.0
+    label: { cs: "Šířka čelisti", en: "Jaw width" }
+    group: shape
+    geometry:
+      method: tps
+      landmarks: [172, 397, 152, 148, 377]
+      scale: 0.30
+    prompt:
+      natural: { "-1": "narrow jawline", "1": "strong wide jawline" }
+      booru:   { "-1": "narrow jaw", "1": "square jaw" }
+
+  eye_size:
+    layer: geometry
+    type: continuous
+    range: [-1.0, 1.0]
+    default: 0.0
+    label: { cs: "Velikost očí", en: "Eye size" }
+    group: eyes
+    geometry:
+      method: tps
+      landmarks: [33, 133, 159, 145, 362, 263, 386, 374]
+      scale: 0.20
+    prompt:
+      natural: { "-1": "small narrow eyes", "1": "large wide eyes" }
+      booru:   { "-1": "narrow eyes", "1": "big eyes" }
+
+  # -------------------------------------------------------------------- mask
+  eye_color:
+    layer: mask
+    type: discrete
+    options: [brown, blue, green, hazel, grey, amber, heterochromia]
+    default: brown
+    label: { cs: "Barva očí", en: "Eye color" }
+    group: eyes
+    mask:
+      # Ne segmentační model — MediaPipe iris landmarky jsou na 512 px přesnější.
+      source: mediapipe_iris
+      regions: [l_iris, r_iris]
+    inpaint:
+      denoise: 0.55
+      identity_weight_override: 0.2
+      feather: 3
+    prompt:
+      natural:
+        brown: "brown eyes"
+        blue: "bright blue eyes"
+        green: "green eyes"
+        hazel: "hazel eyes"
+        grey: "grey eyes"
+        amber: "amber eyes"
+        heterochromia: "heterochromia, one blue eye one brown eye"
+
+  hair_style:
+    layer: mask
+    type: discrete
+    options: [short, buzz, dreadlocks, afro, long_straight, curly, bald, mohawk]
+    default: short
+    label: { cs: "Účes", en: "Hair style" }
+    group: hair
+    mask:
+      source: sam2
+      prompt_points: "from_landmarks(forehead_top, +0.15h)"
+    inpaint:
+      denoise: 0.85
+      identity_weight_override: 0.3
+      feather: 12
+      # Dready a afro jsou objemnější než původní účes — bez expandu se maska
+      # ořízne na siluetu toho starého a nový účes nemá kam růst.
+      expand: 24
+    prompt:
+      natural:
+        short: "short hair"
+        buzz: "buzz cut"
+        dreadlocks: "dreadlocks"
+        afro: "afro hair"
+        long_straight: "long straight hair"
+        curly: "curly hair"
+        bald: "bald head"
+        mohawk: "mohawk hairstyle"
+
+  hair_color:
+    layer: mask
+    type: discrete
+    options: [black, brown, blonde, red, grey, white, blue, pink]
+    default: brown
+    label: { cs: "Barva vlasů", en: "Hair color" }
+    group: hair
+    mask:
+      source: sam2
+      prompt_points: "from_landmarks(forehead_top, +0.15h)"
+    inpaint:
+      denoise: 0.60
+      identity_weight_override: 0.3
+      feather: 8
+      expand: 4
+    prompt:
+      natural:
+        black: "black hair"
+        brown: "brown hair"
+        blonde: "blonde hair"
+        red: "red hair"
+        grey: "grey hair"
+        white: "white hair"
+        blue: "blue hair"
+        pink: "pink hair"
+
+  beard:
+    layer: mask
+    type: discrete
+    options: [none, stubble, short_beard, full_beard, goatee, moustache]
+    default: none
+    label: { cs: "Vousy", en: "Beard" }
+    group: skin
+    mask:
+      # Čelist ∩ pod-rty, mínus samotné rty — čistě z landmarků, bez segmentace.
+      source: landmark_polygon
+      regions: [jaw_lower]
+      subtract: [lips_outer]
+    inpaint:
+      denoise: 0.75
+      identity_weight_override: 0.3
+      feather: 8
+      expand: 8
+    prompt:
+      natural:
+        none: "clean shaven"
+        stubble: "light stubble"
+        short_beard: "short trimmed beard"
+        full_beard: "full thick beard"
+        goatee: "goatee"
+        moustache: "moustache"
+
+  eyebrows:
+    layer: mask
+    type: discrete
+    options: [natural, thick, thin, arched, straight]
+    default: natural
+    label: { cs: "Obočí", en: "Eyebrows" }
+    group: eyes
+    mask:
+      source: landmark_polygon
+      regions: [l_brow, r_brow]
+    inpaint:
+      denoise: 0.60
+      identity_weight_override: 0.25
+      feather: 5
+      expand: 6
+    prompt:
+      natural:
+        natural: "natural eyebrows"
+        thick: "thick bushy eyebrows"
+        thin: "thin eyebrows"
+        arched: "arched eyebrows"
+        straight: "straight eyebrows"
+
+  skin_tone:
+    layer: mask
+    type: continuous
+    range: [-1.0, 1.0]
+    default: 0.0
+    label: { cs: "Tón pleti", en: "Skin tone" }
+    group: skin
+    mask:
+      source: landmark_polygon
+      regions: [face_oval]
+      subtract: [l_eye, r_eye, lips_outer, l_brow, r_brow]
+    inpaint:
+      denoise: 0.35
+      identity_weight_override: 0.4
+      feather: 10
+    prompt:
+      natural: { "-1": "fair pale skin", "1": "deep tanned skin" }
+
+  # ------------------------------------------------------------------ prompt
+  mood:
+    layer: prompt
+    type: discrete
+    options: [neutral, smiling, serious, confident, dreamy]
+    default: neutral
+    label: { cs: "Nálada", en: "Mood" }
+    group: shape
+    prompt:
+      natural:
+        neutral: "neutral expression"
+        smiling: "warm genuine smile"
+        serious: "serious expression"
+        confident: "confident expression"
+        dreamy: "dreamy distant gaze"
+      booru:
+        neutral: "expressionless"
+        smiling: "smile"
+        serious: "serious"
+        confident: "smug"
+        dreamy: "half-closed eyes"
+
+# UI taby v editoru (§9.2). Atribut se do tabu dostane přes pole `group`.
+groups:
+  - { id: eyes,  label: { cs: "Oči",   en: "Eyes" } }
+  - { id: lips,  label: { cs: "Rty",   en: "Lips" } }
+  - { id: nose,  label: { cs: "Nos",   en: "Nose" } }
+  - { id: hair,  label: { cs: "Vlasy", en: "Hair" } }
+  - { id: skin,  label: { cs: "Pleť",  en: "Skin" } }
+  - { id: shape, label: { cs: "Tvar",  en: "Shape" } }
+
+# Ochrana identity (§12): součet absolutních odchylek přes všechny atributy.
+# Měkký limit — varování v UI, ne tvrdý blok.
+identity_guard:
+  warn_threshold: 3.0
+  max_threshold: 5.0

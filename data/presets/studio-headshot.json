@@ -1,0 +1,22 @@
+{
+  "id": "studio-headshot",
+  "version": 1,
+  "category": "realistic",
+  "label": { "cs": "Studiový portrét", "en": "Studio headshot" },
+  "checkpoint": "sd_xl_base_1.0",
+  "profile": "final",
+  "prompt_dialect": "natural",
+  "loras": [
+    { "name": "$user_lora", "weight": 0.75, "optional": true }
+  ],
+  "prompt_template": "professional studio headshot photo of {trigger} {subject}, {attrs}, soft key light, shallow depth of field, neutral grey backdrop, {quality}",
+  "negative_template": "{nsfw_lock}, blurry, out of focus, deformed, disfigured, extra fingers, watermark, text, cartoon, 3d render, plastic skin",
+  "identity": { "method": "ipadapter", "weight": 0.75, "start": 0.0, "end": 0.9 },
+  "controlnet": [{ "type": "depth", "weight": 0.45, "start": 0.0, "end": 0.7 }],
+  "sampler": { "name": "dpmpp_2m", "scheduler": "karras", "steps": 28, "cfg": 6.0 },
+  "resolution": { "width": 1024, "height": 1024 },
+  "supports_attrs": ["lips_fullness", "nose_width", "jaw_width", "eye_size", "eye_color", "hair_style", "hair_color", "beard", "eyebrows", "skin_tone", "mood"],
+  "nsfw_negative_lock": true,
+  "face_restore": 0.0,
+  "license_tier": "safe"
+}

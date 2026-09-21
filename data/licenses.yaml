@@ -1,0 +1,178 @@
+# Licenční registr modelů — jediný zdroj pravdy pro to, co smí Avatar použít.
+#
+# Proč soubor a ne komentář v kódu: na DGX Sparku leží checkpointy, které jsou
+# pro tenhle produkt licenčně zakázané (Juggernaut, Pony), ale používají se tam
+# pro jiné věci. Preset resolver proto NESMÍ věřit tomu, že se na ně "prostě
+# nesáhne" — musí mít allowlist a tvrdě odmítnout preset, který sáhne mimo něj.
+#
+# tier:
+#   safe    — ověřeno, komerční hosting povolen, může do produkce
+#   verify  — nedořešeno, jde použít v devu, blokováno v produkci
+#   blocked — ověřeno jako nepoužitelné, resolver odmítne vždy
+#
+# Ověřeno 2026-08-06. Před releasem přeověřit (viz AVATAR_PLAN.md §11 Fáze 4).
+
+version: 1
+verified_at: "2026-08-06"
+
+# Pokud je true, presety s tierem 'verify' se v produkci nenačtou.
+# V devu se dá přepnout na false přes AVATAR_STRICT_LICENSE=0.
+strict: true
+
+checkpoints:
+  sd_xl_base_1.0:
+    file: sd_xl_base_1.0.safetensors
+    tier: safe
+    license: CreativeML Open RAIL++-M
+    note: >-
+      Bezpečné jádro. Use-restrictions z Attachmentu A licence musí být propsané
+      do ToS aplikace (zákaz generování nezákonného obsahu, deepfake bez souhlasu…).
+    source: https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
+
+  realvis_xl_v5:
+    file: realvisxlV50_v50Bakedvae.safetensors
+    tier: safe
+    license: openrail++
+    note: >-
+      Fotorealistický upgrade nad base. Na model kartě nenalezeny žádné dodatky
+      nad rámec openrail++. Nižší jistota než base — proto ne pro Fázi 0.
+    source: https://huggingface.co/SG161222/RealVisXL_V5.0
+
+  illustrious_xl_v2.0:
+    file: Illustrious-XL-v2.0.safetensors
+    tier: safe
+    license: CreativeML Open RAIL-M
+    note: >-
+      POZOR NA VERZI. v2.0 bylo přelicencováno z Fair AI PL na Open RAIL-M.
+      v0.1 je pořád FAIPL a je blocked. Nikdy needituj tenhle klíč na jinou verzi
+      bez re-verifikace licence.
+    source: https://huggingface.co/OnomaAIResearch/Illustrious-XL-v2.0
+
+  juggernaut_xl_v9:
+    file: Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors
+    tier: blocked
+    license: RunDiffusion vlastní podmínky
+    note: >-
+      "May not be deployed behind paid API services without explicit licensing."
+      Avatar je přesně tenhle případ. Na disku Sparku JE — proto je tu explicitně
+      uvedený jako blocked, aby ho nikdo omylem nenapsal do presetu.
+      Odblokovat lze jen dealem s RunDiffusion (juggernaut@rundiffusion.com).
+
+  juggernaut_xl_lightning:
+    file: Juggernaut-XL-Lightning_4Steps.safetensors
+    tier: blocked
+    license: RunDiffusion vlastní podmínky
+    note: Stejné podmínky jako v9.
+
+  pony_diffusion_v6_xl:
+    file: ponyDiffusionV6XL_v6StartWithThisOne.safetensors
+    tier: blocked
+    license: modifikovaná Fair AI Public License 1.0-SD
+    note: >-
+      Modifikace výslovně zakazuje inference na webech/appkách s jakoukoliv
+      monetizací. Blanket souhlas má jen CivitAI a HuggingFace.
+
+  atomix_pony_anime_xl_v30:
+    file: atomixPonyAnimeXL_v30.safetensors
+    tier: blocked
+    license: derivát Pony V6
+    note: Merge nad Pony V6 — dědí zákaz monetizované inference.
+
+# LoRA (styl i akcelerace). $user_lora je runtime placeholder, ne položka registru.
+loras:
+  sdxl_lightning_8step:
+    file: sdxl_lightning_8step_lora.safetensors
+    tier: safe
+    license: openrail++
+    note: Akcelerace pro preview profil.
+
+  dmd2_sdxl_4step:
+    file: dmd2_sdxl_4step_lora_fp16.safetensors
+    tier: safe
+    license: MIT
+    note: Alternativa k Lightning, agresivnější. Ověřit kvalitu na obličejích.
+
+controlnets:
+  xinsir_union_promax:
+    file: controlnet-union-sdxl-promax-xinsir.safetensors
+    tier: safe
+    license: Apache 2.0
+    note: >-
+      Jeden model pokrývá depth + softedge + inpaint. Šetří VRAM i swap oproti
+      třem samostatným ControlNetům.
+    source: https://huggingface.co/xinsir/controlnet-union-sdxl-1.0
+
+  xinsir_openpose:
+    file: controlnet-openpose-sdxl-xinsir.safetensors
+    tier: safe
+    license: Apache 2.0
+
+  instantid_controlnet:
+    file: instantid-controlnet-sdxl.safetensors
+    tier: blocked
+    license: kód Apache, ale pipeline vyžaduje InsightFace/antelopev2 (non-komerční)
+    note: >-
+      Samotný soubor je jen ControlNet, ale je k ničemu bez InstantID pipeline,
+      která stojí na non-komerčních InsightFace váhách. Blocked, ať to nikoho neláká.
+
+ipadapters:
+  ip_adapter_plus_face_sdxl:
+    file: ip-adapter-plus-face_sdxl_vit-h.safetensors
+    tier: safe
+    license: Apache 2.0
+    note: >-
+      Z h94/IP-Adapter (Apache 2.0). NENÍ to FaceID varianta — ta žije v jiném
+      repu pod CC-BY-NC. Tahle jede přes CLIP image encoder, žádný InsightFace.
+    source: https://huggingface.co/h94/IP-Adapter
+
+  ip_adapter_plus_sdxl:
+    file: ip-adapter-plus_sdxl_vit-h.safetensors
+    tier: safe
+    license: Apache 2.0
+
+clip_vision:
+  clip_vit_h_14:
+    file: CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors
+    tier: safe
+    license: MIT
+    note: Image encoder pro IP-Adapter.
+
+# Pomocné modely mimo ComfyUI graf (analýza, masky, post).
+auxiliary:
+  mediapipe_face_landmarker:
+    tier: safe
+    license: Apache 2.0
+    note: 478 landmarků + iris při refine_landmarks=true. Běží on-device i na serveru.
+
+  sam2:
+    tier: safe
+    license: Apache 2.0
+    note: Maska vlasů (Fáze 2).
+
+  depth_anything_v2_small:
+    tier: safe
+    license: Apache 2.0
+    note: >-
+      JEDINÁ použitelná varianta. Base/Large/Giant jsou CC-BY-NC-4.0 —
+      původní plán tvrdil, že Base je Apache, což je chyba.
+
+  depth_anything_v2_base:
+    tier: blocked
+    license: CC-BY-NC-4.0
+
+  birefnet:
+    tier: safe
+    license: MIT
+    note: Průhledné PNG pro export.
+
+  gfpgan:
+    tier: blocked
+    license: Apache 2.0 s výjimkami — StyleGAN2 (NVIDIA non-komerční), DFDNet (CC-BY-NC-SA)
+    note: >-
+      Vlastní LICENSE soubor GFPGANu vyjímá StyleGAN2 pod NVIDIA licencí
+      ("only may be used or intended for use non-commercially"). StyleGAN2 prior
+      je jádro generátoru, ne volitelná závislost. Face restore je proto v v0 vypnutý.
+
+  codeformer:
+    tier: blocked
+    license: NTU S-Lab, non-komerční

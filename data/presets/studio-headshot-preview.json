@@ -1,0 +1,23 @@
+{
+  "id": "studio-headshot-preview",
+  "version": 1,
+  "category": "realistic",
+  "label": { "cs": "Studiový portrét (náhled)", "en": "Studio headshot (preview)" },
+  "checkpoint": "sd_xl_base_1.0",
+  "profile": "preview",
+  "prompt_dialect": "natural",
+  "loras": [
+    { "name": "sdxl_lightning_8step", "weight": 1.0 },
+    { "name": "$user_lora", "weight": 0.75, "optional": true }
+  ],
+  "prompt_template": "professional studio headshot photo of {trigger} {subject}, {attrs}, soft key light, neutral grey backdrop, {quality}",
+  "negative_template": "{nsfw_lock}, blurry, deformed, watermark, text",
+  "identity": { "method": "ipadapter", "weight": 0.75, "start": 0.0, "end": 0.9 },
+  "controlnet": [{ "type": "depth", "weight": 0.45, "start": 0.0, "end": 0.7 }],
+  "sampler": { "name": "dpmpp_sde", "scheduler": "karras", "steps": 8, "cfg": 2.0 },
+  "resolution": { "width": 768, "height": 768 },
+  "supports_attrs": ["lips_fullness", "eye_color", "hair_style", "hair_color", "mood"],
+  "nsfw_negative_lock": true,
+  "face_restore": 0.0,
+  "license_tier": "safe"
+}
